@@ -1,0 +1,27 @@
+{
+  "top_bar": {
+    "title": "Email Verification"
+  },
+  "header": {
+    "title": "Verify Your Email",
+    "description_prefix": "A 6-digit code was sent to ",
+    "email": "alex.p****@email.com",
+    "description_suffix": ". Please enter it below."
+  },
+  "otp": {
+    "length": 6,
+    "placeholder": "-",
+    "prefill": ["4", "8", "2", "", "", ""]
+  },
+  "resend": {
+    "question": "Didn't receive a code?",
+    "action": "Resend OTP"
+  },
+  "timer": {
+    "prefix": "Expires in",
+    "value": "01:59"
+  },
+  "action": {
+    "label": "Verify"
+  }
+}

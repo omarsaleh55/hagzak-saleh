@@ -1,0 +1,99 @@
+# Dart/Flutter static analysis configuration for Koraa app.
+# Extends the official flutter_lints baseline and adds stricter rules
+# to catch: unused code, widget duplication, and organisation issues.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  # Treat these as errors (will fail `flutter analyze --fatal-infos`)
+  errors:
+    # Dead code
+    dead_code: error
+    unused_import: error
+    unused_local_variable: error
+    unused_element: error
+    unused_field: error
+    unused_result: warning
+
+    # Type safety
+    invalid_assignment: error
+    missing_return: error
+    argument_type_not_assignable: error
+    return_of_invalid_type: error
+    body_might_complete_normally: error
+
+    # Missing required params
+    missing_required_param: error
+    missing_default_value_for_parameter: error
+
+    # Avoid print() in production code
+    avoid_print: warning
+
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+    - '**/*.gen.dart'
+    - 'lib/generated/**'
+
+linter:
+  rules:
+    # ── Dead code & unused items ─────────────────────────────────────────────
+    avoid_unused_constructor_parameters: true
+    cancel_subscriptions: true
+
+    # ── Widget organisation ──────────────────────────────────────────────────
+    # Every widget MUST have a key parameter — critical for Flutter's
+    # element tree and helps identify reuse opportunities.
+    use_key_in_widget_constructors: true
+
+    # Prefer const constructors — reduces rebuilds and makes duplication obvious
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+
+    # Wrap-only containers should be SizedBox (catches copy-paste anti-patterns)
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
+    sized_box_shrink_expand: true
+
+    # Use SizedBox.shrink / SizedBox.expand over Container equivalents
+    use_decorated_box: true
+
+    # ── Code quality ─────────────────────────────────────────────────────────
+    avoid_print: true
+    avoid_empty_else: true
+    avoid_relative_lib_imports: true
+    avoid_redundant_argument_values: true
+    avoid_returning_null_for_void: true
+    avoid_shadowing_type_parameters: true
+    avoid_slow_async_io: true
+    avoid_type_to_string: true
+    avoid_void_async: true
+
+    prefer_single_quotes: true
+    prefer_final_fields: true
+    prefer_final_in_for_each: true
+    prefer_final_locals: true
+    prefer_if_null_operators: true
+    prefer_null_aware_operators: true
+    prefer_spread_collections: true
+    prefer_interpolation_to_compose_strings: true
+
+    # Enforce explicit types on public APIs
+    always_declare_return_types: true
+    type_annotate_public_apis: true
+
+    # Consistent imports
+    directives_ordering: true
+    no_duplicate_case_values: true
+    no_logic_in_create_state: true
+
+    # Flutter-specific
+    use_full_hex_values_for_flutter_colors: true
+    use_super_parameters: true
+
+    # ── Naming conventions ────────────────────────────────────────────────────
+    file_names: true
+    package_names: true
+    non_constant_identifier_names: true
+    constant_identifier_names: true

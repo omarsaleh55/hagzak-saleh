@@ -1,0 +1,14 @@
+{
+  "ignoreExportsUsedInFile": true,
+  "exclude": ["exports"],
+  "ignoreBinaries": ["knip"],
+  "ignore": [
+    "src/config/firebase.ts",
+    "src/config/logger.ts",
+    "src/config/redis.ts",
+    "src/db/seeds/admin.seed.ts",
+    "src/db/seeds/sports.seed.ts",
+    "tests/helpers/**",
+    "scripts/**"
+  ]
+}

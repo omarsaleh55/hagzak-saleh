@@ -1,0 +1,27 @@
+{
+  "top_bar": {
+    "title": "Phone Number Verification"
+  },
+  "header": {
+    "title": "Verify Your Phone\nnumber",
+    "description_prefix": "We sent a 6-digit code to ",
+    "email": "+1 201 555 0123",
+    "description_suffix": " via WhatsApp."
+  },
+  "otp": {
+    "length": 6,
+    "placeholder": "-",
+    "prefill": ["", "", "", "", "", ""]
+  },
+  "resend": {
+    "question": "Didn't receive a code?",
+    "action": "Resend OTP"
+  },
+  "timer": {
+    "prefix": "Expires in",
+    "value": "01:59"
+  },
+  "action": {
+    "label": "Verify"
+  }
+}

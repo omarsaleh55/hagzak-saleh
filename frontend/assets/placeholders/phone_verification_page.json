@@ -1,0 +1,35 @@
+{
+  "top_bar": {
+    "title": "Phone Verification"
+  },
+  "hero": {
+    "title_line_1": "Step into the",
+    "title_line_2": "Game",
+    "description": "We'll send you a quick code to verify your phone number."
+  },
+  "form": {
+    "label": "Phone Number",
+    "country_code": "EG +20",
+    "phone_placeholder": "10 1234 5678",
+    "button_label": "Send Verification Code",
+    "helper_text": "Standard SMS rates may apply.",
+    "validation_error": "Enter a valid Egyptian mobile number with country code +20 (e.g. 10, 11, 12, or 15 prefix)."
+  },
+  "features": [
+    {
+      "id": "secure",
+      "title": "Secure",
+      "description": "Instant encryption for your account.",
+      "icon": "verified_user"
+    },
+    {
+      "id": "fast",
+      "title": "Fast",
+      "description": "Verified in under 30 seconds.",
+      "icon": "bolt"
+    }
+  ],
+  "footer": {
+    "image_url": "https://lh3.googleusercontent.com/aida-public/AB6AXuBZaM7NCtJd1w4eRfDfIEOCTRpZN_ZD6Tk0WamlY8Qc9iQq_Tg9oMOBoOGRYkTZ05v0sIy0lyyIRqz1UfHmQK_QIAsKvb4XyOF-nPGdcjUa4-fdxb4bpyNrV9ujofU54qtQFppO32V4H9LnuCRXrBY2SxCy-IGETbd3sdAnhizh7psqJgIpDp4WUkPC3VHK-uLPx9620WWsAb3z4dyhlrFTMkjIv4ApCUGPl2mqJy0mzbi710hGRlHejiyb6m2thganjFzz3Mwp29Y"
+  }
+}

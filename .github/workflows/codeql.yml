@@ -1,0 +1,66 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+  schedule:
+    - cron: '0 2 * * 0'
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: npm audit (high + critical only)
+        run: npm audit --audit-level=high --json > npm-audit.json || true
+
+      - name: Parse audit results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const auditPath = 'backend/npm-audit.json';
+            if (!fs.existsSync(auditPath)) return;
+            const audit = JSON.parse(fs.readFileSync(auditPath, 'utf8'));
+            const vulns = audit.metadata?.vulnerabilities ?? {};
+            const high = (vulns.high ?? 0) + (vulns.critical ?? 0);
+            if (high > 0) {
+              core.setFailed(
+                `Found ${vulns.critical ?? 0} critical and ${vulns.high ?? 0} high severity vulnerabilities. ` +
+                'Run "npm audit fix" to resolve them.'
+              );
+            } else {
+              console.log('No high/critical vulnerabilities found.');
+            }
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-${{ github.run_number }}
+          path: backend/npm-audit.json
+          retention-days: 14

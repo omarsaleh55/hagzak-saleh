@@ -1,0 +1,7 @@
+dist/
+coverage/
+node_modules/
+jscpd-report/
+src/db/migrations/
+*.sql
+*.md

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": ["src/server.ts", "src/app.ts", "src/db/seeds/*.ts"],
+  "project": ["src/**/*.ts"],
+  "ignoreDependencies": ["tsx", "ts-jest", "@types/*"],
+  "ignore": [
+    "src/db/migrations/**",
+    "src/config/firebase.ts",
+    "src/config/logger.ts",
+    "src/config/mailer.ts",
+    "src/config/redis.ts",
+    "**/.gitkeep"
+  ],
+  "jest": {
+    "config": ["jest.config.js"],
+    "entry": ["jest.setup.ts", "src/**/__tests__/**/*.ts", "tests/**/*.ts"]
+  }
+}

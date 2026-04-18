@@ -1,0 +1,258 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/flutter-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/flutter-ci.yml'
+
+concurrency:
+  group: flutter-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.41.5'
+
+jobs:
+  # ── 1. Static analysis (replaces ESLint for Dart) ───────────────────────────
+  analyze:
+    name: Dart Analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Verify no dependency conflicts
+        run: flutter pub outdated --no-dev-dependencies
+
+      - name: Run Dart analyzer (fatal warnings + infos)
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+  # ── 2. Format check ──────────────────────────────────────────────────────────
+  format:
+    name: Dart Format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Check Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib/ test/
+
+  # ── 3. Tests ─────────────────────────────────────────────────────────────────
+  test:
+    name: Flutter Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flutter-coverage-${{ github.run_number }}
+          path: frontend/coverage/
+          retention-days: 14
+
+  # ── 4. Build — compile the full app to catch runtime/linking errors ─────────
+  build:
+    name: Flutter Build (Debug APK)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        run: flutter build apk --debug --no-tree-shake-icons
+
+  # ── 6. Code duplication check (jscpd on Dart files) ─────────────────────────
+  duplication:
+    name: Flutter Code Duplication
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run jscpd on Dart files
+        run: |
+          npx --yes jscpd lib \
+            --threshold 5 \
+            --min-lines 10 \
+            --min-tokens 60 \
+            --reporters "console,json,threshold" \
+            --output ./jscpd-flutter-report \
+            --ignore "**/generated/**,**/*.g.dart,**/*.freezed.dart"
+        working-directory: frontend
+
+      - name: Upload duplication report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flutter-duplication-report-${{ github.run_number }}
+          path: frontend/jscpd-flutter-report/
+          retention-days: 7
+
+  # ── 7. Widget extraction check ───────────────────────────────────────────────
+  # Detects inline widget patterns (buttons, cards, etc.) that should be
+  # extracted into the shared/widgets directory instead of duplicated across files.
+  widget-extraction:
+    name: Widget Extraction Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for inlined reusable widgets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const path = require('path');
+            const fs = require('fs');
+
+            const libDir = path.join(process.cwd(), 'frontend', 'lib');
+            const sharedDir = path.join(libDir, 'shared', 'widgets');
+
+            // Patterns that indicate a widget should be in shared/widgets instead
+            const inlinePatterns = [
+              { pattern: /ElevatedButton\s*\(/g,  name: 'ElevatedButton',   threshold: 3 },
+              { pattern: /TextButton\s*\(/g,       name: 'TextButton',       threshold: 3 },
+              { pattern: /OutlinedButton\s*\(/g,   name: 'OutlinedButton',   threshold: 3 },
+              { pattern: /IconButton\s*\(/g,       name: 'IconButton',       threshold: 4 },
+              { pattern: /FloatingActionButton\s*\(/g, name: 'FAB',          threshold: 2 },
+              { pattern: /CircularProgressIndicator\s*\(/g, name: 'Spinner', threshold: 3 },
+              { pattern: /Shimmer\s*\./g,          name: 'Shimmer',          threshold: 2 },
+            ];
+
+            let violations = [];
+
+            // Walk all feature/page dart files (skip shared/widgets itself)
+            function walkDart(dir, sharedPath, fileList = []) {
+              for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                  if (full !== sharedPath) walkDart(full, sharedPath, fileList);
+                } else if (entry.name.endsWith('.dart')) {
+                  fileList.push(full);
+                }
+              }
+              return fileList;
+            }
+
+            const dartFiles = walkDart(libDir, sharedDir);
+            const fileCounts = {};
+
+            for (const file of dartFiles) {
+              const content = fs.readFileSync(file, 'utf8');
+              const rel = path.relative(process.cwd(), file);
+              for (const { pattern, name } of inlinePatterns) {
+                const matches = content.match(pattern);
+                if (matches) {
+                  fileCounts[name] = fileCounts[name] || [];
+                  fileCounts[name].push({ file: rel, count: matches.length });
+                }
+              }
+            }
+
+            for (const [widget, files] of Object.entries(fileCounts)) {
+              const total = files.reduce((s, f) => s + f.count, 0);
+              const pattern = inlinePatterns.find(p => p.name === widget);
+              if (total >= (pattern?.threshold ?? 3)) {
+                violations.push({ widget, total, files });
+              }
+            }
+
+            if (violations.length > 0) {
+              let msg = '### Widget Extraction Warnings\n\n';
+              msg += 'The following widgets appear inline in multiple feature files.\n';
+              msg += 'Consider extracting them into `shared/widgets/` to avoid duplication:\n\n';
+              msg += '| Widget | Total Uses | Files |\n|---|---|---|\n';
+              for (const v of violations) {
+                const fileList = v.files.map(f => `\`${f.file}\``).join(', ');
+                msg += `| ${v.widget} | ${v.total} | ${fileList} |\n`;
+              }
+              msg += '\n**How to fix:** Create (or use) a component in `lib/shared/widgets/` ';
+              msg += 'and import it wherever needed instead of repeating the inline widget code.';
+              console.log(msg);
+              // Non-blocking: warn but do not fail the build
+              // Change 'warn' to 'error' below to make this a hard failure
+              core.warning('Widget extraction issues found — see job log for details.');
+            } else {
+              console.log('No widget extraction issues found.');
+            }
+
+  # ── Summary gate ─────────────────────────────────────────────────────────────
+  ci-passed:
+    name: Flutter CI Passed
+    runs-on: ubuntu-latest
+    needs: [analyze, format, build, test, duplication, widget-extraction]
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          results='${{ toJSON(needs) }}'
+          if echo "$results" | grep -q '"result": "failure"'; then
+            echo "One or more Flutter CI jobs failed."
+            exit 1
+          fi
+          echo "All Flutter CI checks passed."
